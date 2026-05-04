@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Poem to Song Shaper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark">§</span>
+      <h1>Poem&nbsp;to&nbsp;Song&nbsp;Shaper</h1>
+      <span class="tag">a workbench for turning text into singable shape</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="ghost" id="btn-examples" title="Load an example">Examples</button>
+      <button class="ghost" id="btn-theme" title="Toggle theme">◐</button>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <!-- LEFT — SOURCE -->
+    <section class="pane source">
+      <div class="pane-head">
+        <h2>Source</h2>
+        <div class="pane-head-meta" id="source-meta">paste a poem, fragment, or passage</div>
+      </div>
+
+      <textarea id="source" class="source-input" spellcheck="false"
+        placeholder="Paste your poem, fragment, monologue, or passage here…"></textarea>
+
+      <div class="source-foot">
+        <div class="counts" id="source-counts"></div>
+        <div class="source-actions">
+          <button class="ghost small" id="btn-clear">Clear</button>
+          <button class="primary" id="btn-shape">Shape it &rarr;</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CENTER — CONTROLS + ANALYSIS + STRUCTURE -->
+    <section class="pane center">
+
+      <div class="card analysis">
+        <div class="card-head">
+          <h3>Reading</h3>
+          <span class="muted" id="analysis-status">awaiting text</span>
+        </div>
+        <div class="analysis-body" id="analysis-body">
+          <p class="empty">The poem will be read for tone, recurring images, hookable lines,
+            and whether it actually wants to become a song. Paste something on the left to begin.</p>
+        </div>
+      </div>
+
+      <div class="card controls">
+        <div class="card-head">
+          <h3>Shape</h3>
+        </div>
+
+        <div class="control-row">
+          <label class="control-label">Target form</label>
+          <div class="chips" id="form-chips" role="radiogroup">
+            <button class="chip" data-form="singer-songwriter" aria-checked="true">singer-songwriter</button>
+            <button class="chip" data-form="folk-ballad">folk ballad</button>
+            <button class="chip" data-form="indie-art-song">indie art song</button>
+            <button class="chip" data-form="musical-theatre">musical theatre</button>
+            <button class="chip" data-form="pop-adjacent">pop-adjacent</button>
+            <button class="chip" data-form="spoken-refrain">spoken-word w/ refrain</button>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <label class="control-label">Songability</label>
+          <div class="chips toggles" id="dial-chips">
+            <button class="chip toggle" data-dial="repetition">more repetition</button>
+            <button class="chip toggle" data-dial="clarity">more clarity</button>
+            <button class="chip toggle" data-dial="density">more poetic density</button>
+            <button class="chip toggle" data-dial="conversational">more conversational</button>
+            <button class="chip toggle" data-dial="melodic">more melodic phrasing</button>
+            <button class="chip toggle" data-dial="shorter">shorter lines</button>
+            <button class="chip toggle" data-dial="hook">stronger hook</button>
+          </div>
+        </div>
+
+        <div class="control-foot">
+          <button class="ghost small" id="btn-reset-dials">reset dials</button>
+          <button class="primary small" id="btn-reshape" disabled>Re-shape with these dials</button>
+        </div>
+      </div>
+
+      <div class="card hooks-card">
+        <div class="card-head">
+          <h3>Hook candidates</h3>
+          <span class="muted" id="hooks-status"></span>
+        </div>
+        <ul class="hook-list" id="hook-list">
+          <li class="empty muted">Hook candidates will appear here once shaping begins.</li>
+        </ul>
+      </div>
+
+    </section>
+
+    <!-- RIGHT — DIRECTIONS -->
+    <section class="pane directions">
+      <div class="pane-head">
+        <h2>Directions</h2>
+        <div class="pane-head-meta">three ways this could move</div>
+      </div>
+
+      <div class="directions-tabs" id="direction-tabs" role="tablist">
+        <button class="dir-tab active" data-dir="0" role="tab">Minimal intervention</button>
+        <button class="dir-tab" data-dir="1" role="tab">Balanced adaptation</button>
+        <button class="dir-tab" data-dir="2" role="tab">Bold restructuring</button>
+      </div>
+
+      <div id="direction-body" class="direction-body">
+        <div class="empty-pane">
+          <p class="empty">Three shaping directions will appear here:
+            <em>minimal</em>, <em>balanced</em>, and <em>bold</em>.
+            Each will say what it preserves, what it adapts, and why.</p>
+        </div>
+      </div>
+
+      <div class="direction-foot" id="direction-foot" hidden>
+        <button class="ghost small" id="btn-save">★ Save this version</button>
+        <button class="ghost small" id="btn-copy-lyric">Copy as lyric sheet</button>
+        <button class="ghost small" id="btn-copy-md">Export markdown</button>
+        <button class="ghost small" id="btn-copy-hooks">Copy hooks only</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM DRAWER — Saved hooks & favorites -->
+  <aside class="drawer" id="drawer" data-open="false">
+    <button class="drawer-tab" id="drawer-tab" aria-expanded="false">
+      <span>Saved</span>
+      <span class="muted small" id="drawer-count">0</span>
+    </button>
+    <div class="drawer-body">
+      <div class="drawer-cols">
+        <div class="drawer-col">
+          <h4>Favorite hooks</h4>
+          <ul id="saved-hooks" class="saved-list"><li class="empty muted">No saved hooks yet.</li></ul>
+        </div>
+        <div class="drawer-col">
+          <h4>Saved versions</h4>
+          <ul id="saved-versions" class="saved-list"><li class="empty muted">No saved versions yet.</li></ul>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Modal: examples -->
+  <div class="modal" id="modal-examples" hidden>
+    <div class="modal-card">
+      <header><h3>Pick an example</h3>
+        <button class="ghost small" data-close>close</button></header>
+      <div id="example-grid" class="example-grid"></div>
+    </div>
+  </div>
+
+  <!-- Modal: line tools -->
+  <div class="modal" id="modal-line" hidden>
+    <div class="modal-card">
+      <header><h3>Line tools</h3>
+        <button class="ghost small" data-close>close</button></header>
+      <div class="line-original" id="line-original"></div>
+      <div class="line-tools" id="line-tools"></div>
+      <div class="line-variants" id="line-variants"></div>
+      <footer class="line-footer">
+        <button class="ghost small" id="line-replace" disabled>Replace in section</button>
+      </footer>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
