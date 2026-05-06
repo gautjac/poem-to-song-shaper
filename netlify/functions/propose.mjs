@@ -1,6 +1,12 @@
 // Netlify Function: propose.mjs
 // Proxies a call to Anthropic's Claude API. The browser never sees the key.
 //
+// Recomputes prosody server-side using the CMU phoneme dictionary so the
+// AI prompt contains accurate rhyme detection (skies/eyes, blue/shoe etc.),
+// not just spelling-based heuristics.
+
+import { analyzeProsody as analyzeProsodyServer } from "./prosody-server.mjs";
+//
 // POST body:
 //   {
 //     mode:        "section" | "fill-thin",
@@ -320,6 +326,25 @@ export default async (req, _context) => {
   }
 
   const model = body.model || DEFAULT_MODEL;
+
+  // Recompute prosody server-side from the actual source text. This replaces
+  // the spelling-heuristic prosody the browser sent with phoneme-aware
+  // detection. We keep what the browser sent only as a tie-breaker if the
+  // server analysis somehow fails.
+  if (body.source && body.analysis) {
+    try {
+      const serverProsody = analyzeProsodyServer(body.source);
+      // Strip the per-stanza endWordsInDict flag before sending to the model
+      // — useful for diagnostics, noisy in the prompt.
+      serverProsody.stanzas = (serverProsody.stanzas || []).map(s => {
+        const { endWordsInDict, ...keep } = s;
+        return keep;
+      });
+      body.analysis.prosody = serverProsody;
+    } catch (e) {
+      // Fall back to whatever the browser sent — better than nothing.
+    }
+  }
 
   try {
     if (body.mode === "section") {
