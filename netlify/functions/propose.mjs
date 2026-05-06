@@ -29,6 +29,7 @@
 const ANTHROPIC_URL  = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VER  = "2023-06-01";
 const DEFAULT_MODEL  = "claude-sonnet-4-6";
+const FALLBACK_MODEL = "claude-haiku-4-5-20251001";
 
 const VOICE_RULES = `
 You shape text into song. Follow these rules without exception:
@@ -169,7 +170,7 @@ function jsonResponse(status, body) {
   });
 }
 
-async function callAnthropic({ apiKey, model, prompt, maxTokens = 1500 }) {
+async function callAnthropicOnce({ apiKey, model, prompt, maxTokens }) {
   const res = await fetch(ANTHROPIC_URL, {
     method: "POST",
     headers: {
@@ -186,15 +187,40 @@ async function callAnthropic({ apiKey, model, prompt, maxTokens = 1500 }) {
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Anthropic API ${res.status}: ${errText}`);
+    const e = new Error(`Anthropic API ${res.status}: ${errText}`);
+    e.status = res.status;
+    throw e;
   }
   const data = await res.json();
-  // Concatenate all text content blocks, ignoring any thinking blocks.
   const text = (data.content || [])
     .filter(c => c.type === "text")
     .map(c => c.text)
     .join("");
   return { text, raw: data };
+}
+
+// Retry on transient errors (5xx, including 529 overloaded). Falls back to a
+// faster, smaller model after the primary keeps failing — better to deliver
+// haiku output than nothing.
+async function callAnthropic({ apiKey, model, prompt, maxTokens = 1500 }) {
+  const attempts = [
+    { model, delay: 0 },
+    { model, delay: 600 },
+    { model: FALLBACK_MODEL, delay: 0 },
+    { model: FALLBACK_MODEL, delay: 800 }
+  ];
+  let lastErr;
+  for (const a of attempts) {
+    if (a.delay) await new Promise(r => setTimeout(r, a.delay));
+    try {
+      return await callAnthropicOnce({ apiKey, model: a.model, prompt, maxTokens });
+    } catch (err) {
+      lastErr = err;
+      // Don't retry on 4xx (auth, bad request) — those won't get better.
+      if (err.status && err.status >= 400 && err.status < 500) throw err;
+    }
+  }
+  throw lastErr;
 }
 
 // Pull out the first JSON object/array from a model response.
