@@ -65,7 +65,11 @@ export function renderDirectionTabs(directions, activeIdx) {
   const tabs = document.querySelectorAll(".dir-tab");
   tabs.forEach((tab, i) => {
     tab.classList.toggle("active", i === activeIdx);
-    if (directions[i]) tab.textContent = directions[i].direction;
+    if (directions[i]) {
+      const full = directions[i].direction;             // "Minimal intervention"
+      const short = full.split(/\s+/)[0];                // "Minimal"
+      tab.innerHTML = `<span class="full">${escape(full)}</span><span class="short">${escape(short)}</span>`;
+    }
   });
 }
 

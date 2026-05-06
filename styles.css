@@ -132,9 +132,8 @@ button.small { padding: 4px 10px; font-size: 0.76rem; }
   .layout { grid-template-columns: 1fr 1fr; }
   .pane.directions { grid-column: 1 / -1; }
 }
-@media (max-width: 720px) {
-  .layout { grid-template-columns: 1fr; padding: 14px 14px 110px; }
-}
+/* On mobile we let the global mobile breakpoint at the bottom of this file
+   handle layout, padding, and pane min-heights. */
 
 .pane {
   background: var(--pane);
@@ -270,6 +269,7 @@ button.small { padding: 4px 10px; font-size: 0.76rem; }
 }
 .dir-tab:hover { color: var(--ink); }
 .dir-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+.dir-tab .short { display: none; }   /* desktop default — show full label */
 
 .direction-body { flex: 1; overflow: auto; padding: 16px 20px 20px; }
 .empty-pane { padding: 24px; }
@@ -550,3 +550,247 @@ button.small { padding: 4px 10px; font-size: 0.76rem; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 999px; border: 2px solid var(--pane); }
 *::-webkit-scrollbar-thumb:hover { background: var(--ink-faint); }
+
+/* ─────────────────────────────────────────────────────────────
+   Touch / coarse-pointer adaptations
+   On touch devices there's no hover — the ✦ propose button and the
+   "refine →" line hint must be visible by default, otherwise they're
+   invisible features.
+   ───────────────────────────────────────────────────────────── */
+@media (hover: none), (pointer: coarse) {
+  .section-propose { opacity: 0.85; }
+  .section-propose:active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .line .tools { opacity: 0.55; }
+  .hook-save { font-size: 1.15rem; padding: 4px 6px; }
+  /* Larger active feedback for touch */
+  .chip:active, .dir-tab:active, button:active { filter: brightness(1.15); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tablet-and-down: stacked layout, single column
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding:
+      max(14px, env(safe-area-inset-top, 0px))
+      max(12px, env(safe-area-inset-right, 0px))
+      calc(56px + env(safe-area-inset-bottom, 0px))
+      max(12px, env(safe-area-inset-left, 0px));
+    max-width: 100%;
+  }
+  .pane { min-height: auto; }
+  .pane.source { min-height: 320px; }
+  .pane.directions { min-height: 360px; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Phone (iPhone Pro and similar) — tighter polish
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+
+  /* Body — disable forced-zoom to keep the app feel.
+     16px input font-size below prevents the iOS auto-zoom-on-focus. */
+  html, body { font-size: 14.5px; }
+  body {
+    /* Use dynamic viewport height so iOS Safari address bar doesn't push
+       content offscreen. */
+    min-height: 100dvh;
+  }
+
+  /* ── Topbar ──────────────────────────────────────────────── */
+  .topbar {
+    padding:
+      calc(env(safe-area-inset-top, 0px) + 10px)
+      max(14px, env(safe-area-inset-right, 0px))
+      10px
+      max(14px, env(safe-area-inset-left, 0px));
+  }
+  .brand { gap: 8px; align-items: center; }
+  .brand .mark { font-size: 1.2rem; }
+  .brand h1 {
+    font-size: 0.98rem;
+    /* Avoid the awkward soft hyphen in "Poem to Song Shaper" */
+    white-space: nowrap;
+  }
+  /* Tagline eats too much space on a phone — hide it. */
+  .brand .tag { display: none; }
+  .topbar-actions button { padding: 6px 12px; }
+
+  /* ── Layout ──────────────────────────────────────────────── */
+  .layout {
+    padding:
+      10px
+      max(10px, env(safe-area-inset-right, 0px))
+      calc(60px + env(safe-area-inset-bottom, 0px))
+      max(10px, env(safe-area-inset-left, 0px));
+    gap: 10px;
+  }
+
+  /* ── Source pane ─────────────────────────────────────────── */
+  .pane.source { min-height: 280px; }
+  .source-input {
+    padding: 14px 16px;
+    font-size: 16px;            /* prevents iOS focus-zoom */
+    line-height: 1.55;
+    background-image: linear-gradient(transparent 24px, var(--paper-line) 25px);
+    background-size: 100% 25px;
+    min-height: 220px;
+  }
+  .source-foot { padding: 8px 12px; flex-wrap: wrap; gap: 8px; }
+  .counts { font-size: 0.7rem; flex: 1 1 100%; order: 2; text-align: left; }
+  .source-actions { order: 1; flex: 1 1 100%; justify-content: space-between; }
+  .source-actions .primary { flex: 1; max-width: 200px; }
+
+  /* ── Center pane (analysis + controls + hooks) ──────────── */
+  .pane.center { padding: 10px; gap: 10px; }
+  .card { padding: 12px 14px; }
+  .analysis-grid { grid-template-columns: 1fr; gap: 4px 0; }
+  .analysis-grid dd { margin-bottom: 4px; }
+  .control-foot { flex-wrap: wrap; }
+  .control-foot button { flex: 1; }
+
+  /* Touch-friendly chips */
+  .chips { gap: 8px; }
+  .chip {
+    padding: 8px 13px;
+    font-size: 0.82rem;
+    min-height: 34px;
+    line-height: 1.1;
+  }
+
+  /* ── Directions tabs — segmented, keep on one line ───── */
+  .directions-tabs {
+    padding: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .directions-tabs::-webkit-scrollbar { display: none; }
+  .dir-tab {
+    flex: 1 0 33.33%;
+    padding: 12px 8px;
+    font-size: 0.86rem;
+    text-align: center;
+    white-space: nowrap;
+    min-height: 44px;
+  }
+  /* On phone we swap to a single-word label per tab to avoid truncation. */
+  .dir-tab .full  { display: none; }
+  .dir-tab .short { display: inline; }
+
+  .direction-body { padding: 14px 14px 16px; }
+  .dir-meta { grid-template-columns: 1fr; gap: 4px 0; padding: 10px 12px; }
+  .dir-meta dd { margin-bottom: 4px; font-size: 0.92rem; }
+
+  .preserve-legend { font-size: 0.66rem; padding: 6px 10px; gap: 8px 12px; }
+
+  /* Section labels — give the ✦ button room and a real tap area */
+  .section-label { gap: 6px; font-size: 0.66rem; }
+  .section-propose {
+    opacity: 0.85;
+    padding: 4px 10px;
+    font-size: 0.64rem;
+    min-height: 28px;
+  }
+  .section-lines { font-size: 1rem; line-height: 1.6; }
+  .line { padding: 2px 6px; min-height: 28px; }
+  .line .tools { display: none; }   /* tap the line itself; instructional hint not needed */
+
+  /* Direction footer — wrap chips, make tappable */
+  .direction-foot {
+    padding: 10px 12px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .direction-foot button { flex: 1 1 calc(50% - 4px); min-height: 36px; padding: 7px 12px; }
+
+  /* ── Drawer ──────────────────────────────────────────────── */
+  .drawer {
+    /* Tuck the closed drawer above the home indicator. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .drawer-tab { padding: 10px 12px; font-size: 0.84rem; }
+  .drawer-body { max-height: 50dvh; padding: 12px 16px 20px; }
+
+  /* ── Modals — bottom-sheet style on phone ─────────────── */
+  .modal {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal-card {
+    max-width: 100%;
+    max-height: 92dvh;
+    border-radius: 14px 14px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    /* Slide up from bottom */
+    animation: sheet-in 220ms cubic-bezier(.2,.7,.2,1);
+  }
+  .modal-card header {
+    padding: 14px 16px 12px;
+    /* Visual handle to suggest the sheet can be dismissed */
+    background:
+      linear-gradient(to bottom,
+        var(--pane) 0,
+        var(--pane) 100%);
+    position: sticky; top: 0; z-index: 1;
+  }
+  .modal-card header::before {
+    content: "";
+    position: absolute; top: 6px; left: 50%;
+    width: 36px; height: 4px;
+    background: var(--rule); border-radius: 2px;
+    transform: translateX(-50%);
+  }
+
+  /* Propose modal */
+  .propose-card { max-width: 100%; }
+  .propose-body { padding: 4px 14px 14px; min-height: 200px; }
+  .propose-option { padding: 12px 14px; }
+  .propose-option-meta { flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+  .propose-option-note { max-width: 100%; text-align: left; font-size: 0.82rem; }
+  .propose-option-lines { font-size: 0.98rem; line-height: 1.55; }
+  .propose-footer { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+  .propose-footer button { flex: 1; min-height: 38px; }
+
+  /* Line modal */
+  .line-original { margin: 14px; padding: 12px 14px; font-size: 1rem; }
+  .line-tools { padding: 0 14px 8px; }
+  .line-variants { padding: 4px 14px 14px; }
+  .line-variants .variant {
+    flex-direction: column; align-items: flex-start; gap: 4px;
+    padding: 10px 12px; font-size: 0.96rem;
+  }
+  .line-variants .variant .label { margin-left: 0; font-size: 0.68rem; }
+  .line-footer { padding: 10px 14px; }
+
+  /* Examples modal */
+  .example-grid { grid-template-columns: 1fr; gap: 10px; padding: 14px; }
+  .example-card { padding: 12px 14px; }
+
+  /* ── Toast ───────────────────────────────────────────────── */
+  .toast {
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    font-size: 0.82rem;
+    max-width: calc(100vw - 28px);
+    text-align: center;
+  }
+}
+
+/* Modal sheet slide-in for phone view */
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Reduced-motion preference — disable big transitions
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .modal-card { animation: none !important; }
+}
