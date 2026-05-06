@@ -128,6 +128,7 @@
       </div>
 
       <div class="direction-foot" id="direction-foot" hidden>
+        <button class="ghost small" id="btn-fill-thin" title="Use AI to rewrite underwritten sections">✦ Fill thin sections</button>
         <button class="ghost small" id="btn-save">★ Save this version</button>
         <button class="ghost small" id="btn-copy-lyric">Copy as lyric sheet</button>
         <button class="ghost small" id="btn-copy-md">Export markdown</button>
@@ -176,6 +177,29 @@
       <div class="line-variants" id="line-variants"></div>
       <footer class="line-footer">
         <button class="ghost small" id="line-replace" disabled>Replace in section</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Modal: AI propose alternatives -->
+  <div class="modal" id="modal-propose" hidden>
+    <div class="modal-card propose-card">
+      <header>
+        <div>
+          <h3 id="propose-title">Propose alternatives</h3>
+          <div class="muted small" id="propose-subtitle">3 takes from Claude, in your voice.</div>
+        </div>
+        <button class="ghost small" data-close>close</button>
+      </header>
+      <div id="propose-body" class="propose-body">
+        <div class="propose-loading">
+          <div class="spinner"></div>
+          <p class="muted">Reading the poem and writing alternatives…</p>
+        </div>
+      </div>
+      <footer class="propose-footer">
+        <button class="ghost small" id="propose-regen" hidden>↻ regenerate</button>
+        <button class="primary small" id="propose-apply" disabled>Replace section</button>
       </footer>
     </div>
   </div>

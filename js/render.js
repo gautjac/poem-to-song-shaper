@@ -1,6 +1,7 @@
 // render.js — DOM rendering. Pure-ish: takes state, paints DOM.
 
 import { Storage } from "./storage.js";
+import { thinSectionIndices } from "./ai.js";
 
 export function renderAnalysis(analysis) {
   const status = document.getElementById("analysis-status");
@@ -80,9 +81,15 @@ export function renderDirection(direction) {
 
   foot.hidden = false;
 
-  const sectionHTML = direction.sections.map(sec => `
-    <div class="section">
-      <div class="section-label">${escape(sec.label)}</div>
+  const thin = new Set(thinSectionIndices(direction));
+  const sectionHTML = direction.sections.map((sec, sIdx) => `
+    <div class="section ${thin.has(sIdx) ? "thin" : ""}" data-section-idx="${sIdx}">
+      <div class="section-label">
+        ${escape(sec.label)}
+        <button class="section-propose" data-propose-section="${sIdx}" title="Propose alternatives in your voice">
+          ${thin.has(sIdx) ? "✦ propose" : "✦"}
+        </button>
+      </div>
       <div class="section-lines">
         ${sec.lines.map((l, i) => `
           <div class="line ${l.source_status}" data-section="${escape(sec.label)}" data-line-idx="${i}" data-line="${escape(l.text)}">

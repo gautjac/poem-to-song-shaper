@@ -11,6 +11,7 @@ import {
   renderControls, renderSourceCounts, renderDrawer, showToast
 } from "./render.js";
 import { asLyricSheet, asMarkdown, asHooksOnly, copyToClipboard } from "./export.js";
+import { proposeForSection, fillThinSections, thinSectionIndices, isAvailable as aiAvailable } from "./ai.js";
 
 // ── boot ─────────────────────────────────────────────────────────────────
 function boot() {
@@ -34,6 +35,7 @@ function boot() {
   wireExamples();
   wireExport();
   wireLineModal();
+  wireProposeModal();
   wireTheme();
 
   // Initial render.
@@ -113,8 +115,16 @@ function wireDirections() {
     });
   });
 
-  // Click on a line to open the line tools modal.
+  // Click on a section's ✦ propose button → AI alternatives modal.
+  // Click on a line → line tools modal.
   document.getElementById("direction-body").addEventListener("click", e => {
+    const proposeBtn = e.target.closest("[data-propose-section]");
+    if (proposeBtn) {
+      e.stopPropagation();
+      const idx = Number(proposeBtn.getAttribute("data-propose-section"));
+      openProposeModal(idx);
+      return;
+    }
     const lineEl = e.target.closest(".line");
     if (!lineEl) return;
     openLineModal(lineEl.dataset.line, lineEl);
@@ -231,6 +241,8 @@ function wireExport() {
     const dir = currentDir(); if (!dir) return;
     copyToClipboard(asHooksOnly(dir)).then(ok => showToast(ok ? "Hooks copied." : "Copy failed."));
   });
+
+  document.getElementById("btn-fill-thin").addEventListener("click", runFillThin);
 }
 
 function currentDir() {
@@ -313,6 +325,170 @@ function classify(orig, next) {
   if (overlap >= 0.85) return "adapted";
   if (overlap >= 0.45) return "heavy";
   return "new";
+}
+
+// ── AI propose modal ────────────────────────────────────────────────────
+let proposeCtx = null; // { sectionIdx, options, picked }
+
+async function openProposeModal(sectionIdx) {
+  const s = State.get();
+  const dir = s.directions[s.activeDir];
+  if (!dir) return;
+  const section = dir.sections[sectionIdx];
+  if (!section) return;
+
+  proposeCtx = { sectionIdx, options: [], picked: null, regenerating: false };
+
+  document.getElementById("propose-title").textContent =
+    `Propose alternatives — ${section.label}`;
+  document.getElementById("propose-subtitle").textContent =
+    `3 takes from Claude, in your voice.`;
+
+  const body = document.getElementById("propose-body");
+  body.innerHTML = `
+    <div class="propose-loading">
+      <div class="spinner"></div>
+      <p class="muted">Reading the poem and writing alternatives…</p>
+    </div>`;
+  document.getElementById("propose-apply").disabled = true;
+  document.getElementById("propose-regen").hidden = true;
+  document.getElementById("modal-propose").hidden = false;
+
+  await runProposeForSection(sectionIdx);
+}
+
+async function runProposeForSection(sectionIdx) {
+  const s = State.get();
+  const dir = s.directions[s.activeDir];
+  const body = document.getElementById("propose-body");
+  try {
+    const res = await proposeForSection({
+      source: s.source,
+      analysis: s.analysis,
+      direction: dir,
+      formId: s.formId,
+      dials: [...s.dials],
+      sectionIdx
+    });
+    if (!res.options || !res.options.length) throw new Error("No options returned.");
+    proposeCtx.options = res.options;
+    renderProposeOptions(res.options);
+    document.getElementById("propose-regen").hidden = false;
+  } catch (err) {
+    body.innerHTML = `
+      <div class="propose-error">
+        <strong>Couldn't reach the AI.</strong><br>
+        ${escapeText(err.message || String(err))}<br><br>
+        Make sure <code>ANTHROPIC_API_KEY</code> is set as a Netlify environment
+        variable, then redeploy. If you're running locally, use
+        <code>netlify dev</code> instead of <code>python3 -m http.server</code>.
+      </div>`;
+    document.getElementById("propose-regen").hidden = false;
+  }
+}
+
+function renderProposeOptions(options) {
+  const body = document.getElementById("propose-body");
+  body.innerHTML = options.map((o, i) => `
+    <div class="propose-option" data-opt-idx="${i}">
+      <div class="propose-option-meta">
+        <span class="propose-option-num">option ${i + 1}</span>
+        <span class="propose-option-note">${escapeText(o.note || "")}</span>
+      </div>
+      <div class="propose-option-lines">
+        ${o.lines.map(l => `<span class="l">${escapeText(l)}</span>`).join("")}
+      </div>
+    </div>
+  `).join("");
+}
+
+function wireProposeModal() {
+  const modal = document.getElementById("modal-propose");
+  modal.addEventListener("click", e => {
+    if (e.target === modal || e.target.matches("[data-close]")) {
+      modal.hidden = true; proposeCtx = null; return;
+    }
+    const opt = e.target.closest("[data-opt-idx]");
+    if (!opt) return;
+    document.querySelectorAll("#propose-body .propose-option").forEach(x => x.classList.remove("selected"));
+    opt.classList.add("selected");
+    proposeCtx.picked = Number(opt.getAttribute("data-opt-idx"));
+    document.getElementById("propose-apply").disabled = false;
+  });
+
+  document.getElementById("propose-regen").addEventListener("click", async () => {
+    if (!proposeCtx || proposeCtx.regenerating) return;
+    proposeCtx.regenerating = true;
+    document.getElementById("propose-body").innerHTML = `
+      <div class="propose-loading"><div class="spinner"></div>
+      <p class="muted">Writing fresh alternatives…</p></div>`;
+    document.getElementById("propose-apply").disabled = true;
+    await runProposeForSection(proposeCtx.sectionIdx);
+    proposeCtx.regenerating = false;
+  });
+
+  document.getElementById("propose-apply").addEventListener("click", () => {
+    if (!proposeCtx || proposeCtx.picked == null) return;
+    const s = State.get();
+    const dir = s.directions[s.activeDir];
+    const section = dir.sections[proposeCtx.sectionIdx];
+    const option = proposeCtx.options[proposeCtx.picked];
+    if (!section || !option) return;
+    section.lines = option.lines.map(text => ({ text, source_status: "new" }));
+    State.set({ directions: s.directions });
+    document.getElementById("modal-propose").hidden = true;
+    proposeCtx = null;
+    showToast(`Replaced ${section.label}.`);
+  });
+}
+
+// Fill all underwritten sections in one batch call.
+async function runFillThin() {
+  const s = State.get();
+  const dir = s.directions[s.activeDir];
+  if (!dir) return;
+  const thin = thinSectionIndices(dir);
+  if (!thin.length) {
+    showToast("No thin sections — every slot has body.");
+    return;
+  }
+
+  const banner = document.createElement("div");
+  banner.className = "fill-banner";
+  banner.id = "fill-banner";
+  banner.innerHTML = `<span class="spinner"></span><span>Filling ${thin.length} thin section${thin.length === 1 ? "" : "s"}…</span>`;
+  const body = document.getElementById("direction-body");
+  body.prepend(banner);
+
+  try {
+    const res = await fillThinSections({
+      source: s.source,
+      analysis: s.analysis,
+      direction: dir,
+      formId: s.formId,
+      dials: [...s.dials],
+      thinSectionIndices: thin
+    });
+    if (!res.fills || !res.fills.length) throw new Error("No fills returned.");
+
+    // Apply each fill — match by sectionIdx, but tolerate index drift via label.
+    let applied = 0;
+    for (const fill of res.fills) {
+      let target = dir.sections[fill.sectionIdx];
+      if (!target || target.label !== fill.sectionLabel) {
+        target = dir.sections.find(sec => sec.label === fill.sectionLabel);
+      }
+      if (!target) continue;
+      target.lines = fill.lines.map(text => ({ text, source_status: "new" }));
+      applied++;
+    }
+    State.set({ directions: s.directions });
+    showToast(`Filled ${applied} section${applied === 1 ? "" : "s"}.`);
+  } catch (err) {
+    showToast(err.message || "AI request failed.");
+  } finally {
+    document.getElementById("fill-banner")?.remove();
+  }
 }
 
 // ── theme ───────────────────────────────────────────────────────────────

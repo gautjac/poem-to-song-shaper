@@ -35,11 +35,45 @@ Paste text on the left. The app:
 ## Stack
 
 - Vanilla HTML / CSS / JS, ES modules, no build step.
-- Local-first. No backend. No auth. State in `localStorage`.
 - Mock shaping engine runs entirely in the browser using heuristics over the
-  pasted text. Deterministic, so dial experiments produce comparable results.
-- Prompt templates in `js/prompts.js` are LLM-ready — swapping in a real
-  model is a single function call.
+  pasted text — deterministic, instant, free, no key required.
+- Optional AI proposals (per-section ✦ button and "fill thin sections") use
+  Claude via a small Netlify Function (`netlify/functions/propose.mjs`) so the
+  API key stays server-side.
+
+## AI features
+
+Once an API key is configured, two features become available on each shaping
+direction:
+
+- **Per-section ✦ propose** — hover a section header in the directions pane,
+  click the ✦ button, and Claude returns three distinct alternative versions of
+  that section in your voice. Pick one to replace it.
+- **✦ Fill thin sections** — auto-detects sections that lean on placeholder
+  content (mostly `new connective` or `repeat` lines, or fewer than two lines
+  total), then asks Claude to rewrite all of them in a single batched call.
+
+Both calls receive the original poem, the analysis, the current direction's
+state, the target form, and the active songability dials — so generated lines
+sit naturally next to what's already there.
+
+### Setting the API key
+
+You need an [Anthropic API key](https://console.anthropic.com/).
+
+**Production (Netlify):**
+```bash
+netlify env:set ANTHROPIC_API_KEY sk-ant-...
+netlify deploy --prod
+```
+
+**Local dev with the function:**
+```bash
+echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
+netlify dev   # serves the static site + /api/propose locally
+```
+
+Without a key, the rest of the app works fine; only the ✦ buttons go inert.
 
 ## Run locally
 
@@ -65,11 +99,14 @@ js/analyzer.js      — line scoring, imagery, recurrence, tone, verdict
 js/shaper.js        — produces the three shaping directions
 js/compressor.js    — line-level transformations
 js/forms.js         — target form blueprints
-js/prompts.js       — LLM prompt templates (for future hookup)
+js/prompts.js       — LLM prompt templates
+js/ai.js            — browser-side client for the propose function
 js/examples.js      — three demo texts
 js/render.js        — DOM rendering
 js/storage.js       — localStorage layer
 js/export.js        — lyric-sheet, markdown, hooks-only formats
+
+netlify/functions/propose.mjs  — proxies AI calls to Claude
 ```
 
 ## Output schema

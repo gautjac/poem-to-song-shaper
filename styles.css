@@ -298,6 +298,19 @@ button.small { padding: 4px 10px; font-size: 0.76rem; }
 .section-label::after {
   content: ""; flex: 1; border-bottom: 1px dashed var(--rule);
 }
+.section-propose {
+  background: transparent; border: 1px solid var(--rule);
+  color: var(--ink-faint);
+  border-radius: 999px; padding: 2px 9px;
+  font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.08em;
+  cursor: pointer; opacity: 0; transition: all 140ms ease;
+  text-transform: uppercase;
+}
+.section:hover .section-propose,
+.section-propose:focus { opacity: 1; }
+.section-propose:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.section-propose[disabled] { opacity: 0.3; cursor: not-allowed; }
+.section.thin .section-propose { opacity: 0.7; color: var(--accent); border-color: var(--accent); }
 .section-lines { font-family: var(--serif); font-size: 1.04rem; line-height: 1.7; }
 .line {
   display: flex; align-items: baseline; gap: 8px;
@@ -440,6 +453,80 @@ button.small { padding: 4px 10px; font-size: 0.76rem; }
 .line-variants .variant.selected { border-color: var(--accent); background: var(--accent-soft); }
 .line-variants .variant .label { font-family: var(--mono); font-size: 0.7rem; color: var(--ink-faint); margin-left: 8px; }
 .line-footer { display: flex; justify-content: flex-end; padding: 10px 16px; border-top: 1px solid var(--rule-soft); }
+
+/* ── propose modal ───────────────────────────────────────── */
+.propose-card { max-width: 760px; }
+.propose-body { padding: 4px 18px 14px; min-height: 220px; }
+.propose-loading {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 50px 20px; gap: 14px;
+}
+.spinner {
+  width: 22px; height: 22px;
+  border: 2px solid var(--rule);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.propose-option {
+  border: 1px solid var(--rule-soft);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+  background: var(--pane-2);
+}
+.propose-option:hover { border-color: var(--ink-faint); }
+.propose-option.selected { border-color: var(--accent); background: var(--accent-soft); }
+.propose-option-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.propose-option-num {
+  font-family: var(--mono); font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-faint);
+}
+.propose-option-note {
+  font-family: var(--serif); font-size: 0.85rem;
+  font-style: italic; color: var(--ink-soft);
+  text-align: right; max-width: 60%;
+}
+.propose-option-lines {
+  font-family: var(--serif); font-size: 1.02rem;
+  line-height: 1.65; color: var(--ink);
+}
+.propose-option-lines .l { display: block; padding: 1px 0; }
+
+.propose-error {
+  padding: 16px 20px; margin: 10px 18px;
+  border: 1px solid var(--rust); border-radius: 6px;
+  background: #c47a5a14;
+  color: var(--ink-soft);
+  font-family: var(--serif); font-size: 0.92rem; line-height: 1.6;
+}
+.propose-error code {
+  font-family: var(--mono); font-size: 0.78rem;
+  background: var(--paper-line); padding: 1px 4px; border-radius: 3px;
+}
+
+.propose-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px; border-top: 1px solid var(--rule-soft);
+  background: var(--pane-2);
+}
+
+.fill-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; margin-bottom: 14px;
+  background: var(--accent-soft); color: var(--ink);
+  border: 1px dashed var(--accent); border-radius: 6px;
+  font-family: var(--serif); font-size: 0.92rem;
+}
+.fill-banner .spinner { width: 14px; height: 14px; border-width: 2px; }
 
 /* ── toast ───────────────────────────────────────────────── */
 .toast {
