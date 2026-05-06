@@ -4,6 +4,8 @@
 //
 // All heuristic. Local. No network.
 
+import { analyzeProsody } from "./prosody.js";
+
 const STOPWORDS = new Set(`
 a about above after again against all am an and any are aren't as at be because been
 before being below between both but by can can't could couldn't did didn't do does
@@ -267,6 +269,7 @@ export function analyze(rawText) {
   const refrains = findNaturalRefrains(lines);
   const tone = detectTone(text);
   const titles = titleCandidates(scored, recurring);
+  const prosody = analyzeProsody(text);
 
   const verdict = songabilityVerdict({ scored, lines, recurring, refrains, tone });
 
@@ -304,6 +307,7 @@ export function analyze(rawText) {
     hooks: hooks.slice(0, 7),
     verdict,
     tension,
+    prosody,
     metrics: {
       lineCount: nonEmpty.length,
       avgWords: Math.round((scored.reduce((a, s) => a + s.words, 0) / Math.max(1, scored.length)) * 10) / 10,

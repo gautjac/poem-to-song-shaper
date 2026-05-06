@@ -47,6 +47,20 @@ You shape text into song. Follow these rules without exception:
   "this love is endless," etc.).
 - The lines you write must sit naturally next to the writer's existing lines.
   Read what comes before and after. Match their breath.
+
+PROSODY — line length, meter, and rhyme:
+- Match the source's typical syllables per line within ±2. If the source's
+  lines run 8–11 syllables, your new lines run 8–11 syllables. Do not write
+  a 16-syllable line into an 8-syllable poem.
+- If the source has a rhyme scheme (ABAB, AABB, AABA, etc.), HONOR it. The
+  end-words you produce must rhyme on the pattern that's already established.
+- If the source is free verse with no end rhyme, do NOT introduce end rhyme.
+  Resist the urge — false rhyme is the most common way to wreck a free-verse
+  piece. Internal sonic echoes (assonance, consonance) are fine.
+- Listen for the meter the source already has — if it leans iambic, lean
+  iambic; if it lopes irregular, stay irregular.
+- Count your syllables before you submit. Re-read the source's end-words
+  before you choose yours.
 `.trim();
 
 function buildSectionPrompt(body) {
@@ -62,16 +76,19 @@ function buildSectionPrompt(body) {
 
   const recurring = (analysis.recurring || []).map(r => `${r.word} (×${r.count})`).join(", ") || "none";
   const tone = (analysis.tone || []).join(" + ") || "neutral";
+  const prosodyBlock = formatProsody(analysis.prosody);
 
   return `${VOICE_RULES}
 
 TASK — Propose THREE distinct alternative versions for the section labelled
 "${sectionLabel}" (the section marked "← FILL THIS" below). Each version must:
   - sit naturally next to the surrounding sections (read them first)
-  - honor the writer's voice and the analysis
+  - honor the writer's voice, the analysis, and the prosody constraints
   - be a different creative bet, not three variations of the same idea
   - be the right length for its label (verse: 3–5 lines; pre-chorus: 2–3 lines;
     chorus: 2–4 lines; bridge: 2–4 lines; outro: 1–3 lines)
+  - match the source's syllables-per-line within ±2
+  - honor the source's rhyme behavior (rhyme if it rhymes, free if it's free)
 
 VOICE & TONE
   Dominant tone: ${tone}
@@ -80,6 +97,9 @@ VOICE & TONE
   Title under consideration: ${direction.possible_title || "—"}
   Target form notes: ${formNotes}
   Active songability dials: ${dialList}
+
+METER & RHYME
+${prosodyBlock}
 
 ORIGINAL TEXT
 \`\`\`
@@ -92,11 +112,12 @@ ${songSoFar}
 \`\`\`
 
 OUTPUT
-Return JSON only, in this exact shape — no prose around it:
+Return JSON only, in this exact shape — no prose around it. In each option's
+note, briefly mention syllable count and any rhyme honored.
 
 {
   "options": [
-    { "lines": ["line 1", "line 2", "line 3"], "note": "one short sentence on the creative choice" },
+    { "lines": ["line 1", "line 2", "line 3"], "note": "one short sentence on the creative choice (incl. syllables/rhyme)" },
     { "lines": ["..."], "note": "..." },
     { "lines": ["..."], "note": "..." }
   ]
@@ -117,14 +138,17 @@ function buildThinFillPrompt(body) {
   const targets = thinSectionIndices.map(i => `  - section ${i}: ${direction.sections[i].label}`).join("\n");
   const recurring = (analysis.recurring || []).map(r => `${r.word} (×${r.count})`).join(", ") || "none";
   const tone = (analysis.tone || []).join(" + ") || "neutral";
+  const prosodyBlock = formatProsody(analysis.prosody);
 
   return `${VOICE_RULES}
 
 TASK — The sections below marked "← REWRITE THIS" are currently underwritten —
 they have too few source lines or rely on placeholder connective lines. Rewrite
 each one so it earns its slot in the song. Use the writer's voice, the
-recurring imagery, and the surrounding sections as anchors. Do not duplicate
-content already in other sections; do not introduce new pop tropes.
+recurring imagery, the prosody constraints, and the surrounding sections as
+anchors. Do not duplicate content already in other sections; do not introduce
+new pop tropes. Match the source's syllables-per-line within ±2 and honor its
+rhyme behavior (rhyme if it rhymes, free if it's free).
 
 Sections to rewrite:
 ${targets}
@@ -137,6 +161,9 @@ VOICE & TONE
   Target form notes: ${formNotes}
   Active songability dials: ${dialList}
 
+METER & RHYME
+${prosodyBlock}
+
 ORIGINAL TEXT
 \`\`\`
 ${source}
@@ -148,7 +175,8 @@ ${songSoFar}
 \`\`\`
 
 OUTPUT
-Return JSON only, no prose:
+Return JSON only, no prose. In each fill's note, briefly mention syllable
+count and any rhyme honored.
 
 {
   "fills": [
@@ -156,11 +184,29 @@ Return JSON only, no prose:
       "sectionIdx": <number>,
       "sectionLabel": "<label>",
       "lines": ["line 1", "line 2", "line 3"],
-      "note": "one short sentence on the creative choice"
+      "note": "one short sentence on the creative choice (incl. syllables/rhyme)"
     },
     ...
   ]
 }`;
+}
+
+function formatProsody(prosody) {
+  if (!prosody?.overall) return "  (no prosody data — write naturally)";
+  const o = prosody.overall;
+  const out = [];
+  out.push(`  Source typical syllables per line: ${o.typical} (full range ${o.range}, avg ${o.avgSyllables})`);
+  out.push(`  → Your new lines should be ${o.typical} syllables. Hard ceiling: do not exceed ${o.maxSyllables + 1}.`);
+  out.push(`  Rhyme behavior: ${prosody.rhymeTendency}`);
+  if ((prosody.stanzas || []).length) {
+    out.push(`  Per-stanza end-words and patterns:`);
+    prosody.stanzas.forEach((s, i) => {
+      const sylls = s.syllableCounts.join(", ");
+      const ends  = (s.endWords || []).join(" / ");
+      out.push(`    stanza ${i + 1}: scheme=${s.rhymeScheme}  syll=[${sylls}]  ends=[${ends}]`);
+    });
+  }
+  return out.join("\n");
 }
 
 function jsonResponse(status, body) {

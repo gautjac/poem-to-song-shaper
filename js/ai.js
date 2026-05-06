@@ -102,6 +102,7 @@ export function thinSectionIndices(direction) {
 }
 
 // Trim the analysis object before sending — drop the noisy `scored` array.
+// Keep prosody (compact and high-signal for the model).
 function slimAnalysis(a) {
   if (!a) return null;
   return {
@@ -112,6 +113,20 @@ function slimAnalysis(a) {
     titles: a.titles,
     hooks: a.hooks?.slice(0, 5),
     verdict: a.verdict,
-    metrics: a.metrics
+    metrics: a.metrics,
+    prosody: a.prosody ? slimProsody(a.prosody) : null
+  };
+}
+
+function slimProsody(p) {
+  return {
+    overall: p.overall,
+    rhymeTendency: p.rhymeTendency,
+    stanzas: (p.stanzas || []).map(s => ({
+      syllableCounts: s.syllableCounts,
+      endWords:       s.endWords,
+      rhymeScheme:    s.rhymeScheme,
+      avgSyllables:   s.avgSyllables
+    }))
   };
 }
