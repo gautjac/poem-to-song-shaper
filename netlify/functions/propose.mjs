@@ -353,22 +353,22 @@ export default async (req, _context) => {
 
   const model = body.model || DEFAULT_MODEL;
 
-  // Recompute prosody server-side from the actual source text. This replaces
-  // the spelling-heuristic prosody the browser sent with phoneme-aware
-  // detection. We keep what the browser sent only as a tie-breaker if the
-  // server analysis somehow fails.
+  // Recompute prosody server-side from the actual source text using the
+  // phoneme dictionary for the target language. This replaces the
+  // spelling-heuristic prosody the browser sent with phoneme-aware
+  // detection (CMU for English, Lexique for French). Falls back to whatever
+  // the browser sent only if the server analysis throws.
   if (body.source && body.analysis) {
     try {
-      const serverProsody = analyzeProsodyServer(body.source);
-      // Strip the per-stanza endWordsInDict flag before sending to the model
-      // — useful for diagnostics, noisy in the prompt.
+      const lang = body.targetLanguage === "fr" ? "fr" : "en";
+      const serverProsody = analyzeProsodyServer(body.source, lang);
       serverProsody.stanzas = (serverProsody.stanzas || []).map(s => {
         const { endWordsInDict, ...keep } = s;
         return keep;
       });
       body.analysis.prosody = serverProsody;
     } catch (e) {
-      // Fall back to whatever the browser sent — better than nothing.
+      // Fall back to browser-sent prosody — better than nothing.
     }
   }
 
