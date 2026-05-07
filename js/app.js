@@ -4,18 +4,31 @@ import * as State from "./state.js";
 import { analyze } from "./analyzer.js";
 import { shape }   from "./shaper.js";
 import { variantsFor } from "./compressor.js";
-import { examples } from "./examples.js";
+import { examplesFor } from "./examples.js";
 import { Storage } from "./storage.js";
 import {
   renderAnalysis, renderHooks, renderDirectionTabs, renderDirection,
   renderControls, renderSourceCounts, renderDrawer, showToast
 } from "./render.js";
 import { asLyricSheet, asMarkdown, asHooksOnly, copyToClipboard } from "./export.js";
-import { proposeForSection, fillThinSections, thinSectionIndices, isAvailable as aiAvailable } from "./ai.js";
+import { proposeForSection, fillThinSections, thinSectionIndices } from "./ai.js";
+import * as I18N from "./i18n.js";
+import { LANG_EN } from "./lang-en.js";
+import { LANG_FR } from "./lang-fr.js";
+
+// Active language pack (engine), driven by the i18n locale.
+let langPack = LANG_EN;
+function langFor(locale) { return locale === "fr" ? LANG_FR : LANG_EN; }
 
 // ── boot ─────────────────────────────────────────────────────────────────
 function boot() {
   State.loadTheme();
+
+  // Detect & apply initial locale before anything else renders.
+  const initialLocale = I18N.detectLocale();
+  I18N.setLocale(initialLocale, { silent: true, persist: false });
+  langPack = langFor(initialLocale);
+  I18N.applyI18n();
 
   // Restore last session if present.
   const last = Storage.get().last;
@@ -37,12 +50,13 @@ function boot() {
   wireLineModal();
   wireProposeModal();
   wireTheme();
+  wireLanguage();
 
-  // Initial render.
+  // Reactive renders driven by State.
   State.subscribe(state => {
     renderControls(state);
     renderSourceCounts(state.source);
-    renderAnalysis(state.analysis);
+    renderAnalysis(state.analysis, langPack);
     renderHooks(state.analysis);
     renderDirectionTabs(state.directions, state.activeDir);
     renderDirection(state.directions[state.activeDir]);
@@ -50,20 +64,49 @@ function boot() {
 
   Storage.subscribe(store => {
     renderDrawer(store);
-    // re-render hooks panel for save-state changes
     const a = State.get().analysis;
     if (a) renderHooks(a);
   });
 
-  // If we restored a source, run shape automatically.
+  // Re-render everything when locale changes.
+  I18N.subscribe(locale => {
+    langPack = langFor(locale);
+    I18N.applyI18n();
+    document.getElementById("btn-lang").textContent = locale === "fr" ? "FR / EN" : "EN / FR";
+    // Re-shape if there's text, so directions update to the new language.
+    const s = State.get();
+    if (s.source && s.source.trim()) runShape();
+    else {
+      renderControls(s);
+      renderAnalysis(s.analysis, langPack);
+      renderHooks(s.analysis);
+      renderDirectionTabs(s.directions, s.activeDir);
+      renderDirection(s.directions[s.activeDir]);
+    }
+  });
+
   if (last && last.source) runShape();
+}
+
+function runShape() {
+  const s = State.get();
+  if (!s.source.trim()) {
+    showToast(I18N.t("toast.pasteFirst"));
+    return;
+  }
+  const analysis = analyze(s.source, langPack);
+  const directions = shape(analysis, { form: s.formId, dials: [...s.dials], lang: langPack });
+  State.set({ analysis, directions, dirty: false, activeDir: s.activeDir || 0 });
+  Storage.saveLast({ source: s.source, formId: s.formId, dials: [...s.dials] });
 }
 
 // ── source ──────────────────────────────────────────────────────────────
 function wireSource() {
   const ta = document.getElementById("source");
   ta.addEventListener("input", e => {
-    State.set({ source: e.target.value, dirty: true });
+    const text = e.target.value;
+    State.set({ source: text, dirty: true });
+    maybeAutoSwitchLocale(text);
   });
   document.getElementById("btn-clear").addEventListener("click", () => {
     ta.value = "";
@@ -73,16 +116,19 @@ function wireSource() {
   document.getElementById("btn-shape").addEventListener("click", runShape);
 }
 
-function runShape() {
-  const s = State.get();
-  if (!s.source.trim()) {
-    showToast("Paste some text first.");
-    return;
-  }
-  const analysis = analyze(s.source);
-  const directions = shape(analysis, { form: s.formId, dials: [...s.dials] });
-  State.set({ analysis, directions, dirty: false, activeDir: s.activeDir || 0 });
-  Storage.saveLast({ source: s.source, formId: s.formId, dials: [...s.dials] });
+// Auto-switch the UI when the source text is clearly in the other language.
+// We only auto-switch ONCE per session (until the user manually toggles)
+// to avoid fighting them on mixed text.
+let autoSwitched = false;
+function maybeAutoSwitchLocale(text) {
+  if (autoSwitched) return;
+  if (!text || text.length < 60) return;
+  const detected = I18N.detectTextLanguage(text);
+  if (!detected) return;
+  if (detected === I18N.getLocale()) return;
+  autoSwitched = true;
+  I18N.setLocale(detected);
+  showToast(detected === "fr" ? I18N.t("toast.frenchDetected") : I18N.t("toast.englishDetected"));
 }
 
 // ── controls ────────────────────────────────────────────────────────────
@@ -115,8 +161,6 @@ function wireDirections() {
     });
   });
 
-  // Click on a section's ✦ propose button → AI alternatives modal.
-  // Click on a line → line tools modal.
   document.getElementById("direction-body").addEventListener("click", e => {
     const proposeBtn = e.target.closest("[data-propose-section]");
     if (proposeBtn) {
@@ -130,24 +174,23 @@ function wireDirections() {
     openLineModal(lineEl.dataset.line, lineEl);
   });
 
-  // Click on a hook to copy / save.
   document.getElementById("hook-list").addEventListener("click", e => {
     const save = e.target.closest("[data-save-hook]");
     if (save) {
       const text = save.getAttribute("data-save-hook");
       if (Storage.hasHook(text)) {
         Storage.removeHook(text);
-        showToast("Hook removed.");
+        showToast(I18N.t("toast.hookRemoved"));
       } else {
         Storage.saveHook(text);
-        showToast("Hook saved.");
+        showToast(I18N.t("toast.hookSaved"));
       }
       return;
     }
     const line = e.target.closest("[data-hook]");
     if (line) {
       const text = line.getAttribute("data-hook");
-      copyToClipboard(text).then(ok => showToast(ok ? "Hook copied." : "Copy failed."));
+      copyToClipboard(text).then(ok => showToast(ok ? I18N.t("toast.hookCopied") : I18N.t("toast.copyFailed")));
     }
   });
 }
@@ -165,7 +208,7 @@ function wireDrawer() {
     const cp = e.target.closest("[data-copy-hook]");
     if (cp) {
       copyToClipboard(cp.getAttribute("data-copy-hook")).then(ok =>
-        showToast(ok ? "Copied." : "Copy failed."));
+        showToast(ok ? I18N.t("toast.copied") : I18N.t("toast.copyFailed")));
       return;
     }
     const rm = e.target.closest("[data-rm-hook]");
@@ -174,7 +217,7 @@ function wireDrawer() {
     const cv = e.target.closest("[data-copy-version]");
     if (cv) {
       const v = Storage.get().versions.find(x => x.id === cv.getAttribute("data-copy-version"));
-      if (v) copyToClipboard(asLyricSheet(v)).then(ok => showToast(ok ? "Lyric sheet copied." : "Copy failed."));
+      if (v) copyToClipboard(asLyricSheet(v)).then(ok => showToast(ok ? I18N.t("toast.lyricCopied") : I18N.t("toast.copyFailed")));
       return;
     }
     const rv = e.target.closest("[data-rm-version]");
@@ -187,8 +230,9 @@ function wireExamples() {
   const modal = document.getElementById("modal-examples");
   const grid  = document.getElementById("example-grid");
   document.getElementById("btn-examples").addEventListener("click", () => {
-    grid.innerHTML = examples.map(ex => `
-      <button class="example-card" data-ex="${ex.id}">
+    const list = examplesFor(I18N.getLocale());
+    grid.innerHTML = list.map(ex => `
+      <button class="example-card" data-ex="${escapeAttr(ex.id)}">
         <h4>${escapeAttr(ex.title)}</h4>
         <p>${escapeAttr(ex.blurb)}</p>
         <div class="ex-meta">${escapeAttr(ex.register)}</div>
@@ -203,7 +247,8 @@ function wireExamples() {
     }
     const card = e.target.closest("[data-ex]");
     if (!card) return;
-    const ex = examples.find(x => x.id === card.dataset.ex);
+    const list = examplesFor(I18N.getLocale());
+    const ex = list.find(x => x.id === card.dataset.ex);
     if (!ex) return;
     document.getElementById("source").value = ex.text;
     State.set({ source: ex.text, dirty: true });
@@ -225,21 +270,21 @@ function wireExport() {
       possible_title: dir.possible_title,
       hook_candidates: dir.hook_candidates
     });
-    showToast("Saved to drawer.");
+    showToast(I18N.t("toast.savedToDrawer"));
     document.getElementById("drawer").dataset.open = "true";
   });
 
   document.getElementById("btn-copy-lyric").addEventListener("click", () => {
     const dir = currentDir(); if (!dir) return;
-    copyToClipboard(asLyricSheet(dir)).then(ok => showToast(ok ? "Lyric sheet copied." : "Copy failed."));
+    copyToClipboard(asLyricSheet(dir)).then(ok => showToast(ok ? I18N.t("toast.lyricCopied") : I18N.t("toast.copyFailed")));
   });
   document.getElementById("btn-copy-md").addEventListener("click", () => {
     const dir = currentDir(); if (!dir) return;
-    copyToClipboard(asMarkdown(dir)).then(ok => showToast(ok ? "Markdown copied." : "Copy failed."));
+    copyToClipboard(asMarkdown(dir)).then(ok => showToast(ok ? I18N.t("toast.markdownCopied") : I18N.t("toast.copyFailed")));
   });
   document.getElementById("btn-copy-hooks").addEventListener("click", () => {
     const dir = currentDir(); if (!dir) return;
-    copyToClipboard(asHooksOnly(dir)).then(ok => showToast(ok ? "Hooks copied." : "Copy failed."));
+    copyToClipboard(asHooksOnly(dir)).then(ok => showToast(ok ? I18N.t("toast.hooksCopied") : I18N.t("toast.copyFailed")));
   });
 
   document.getElementById("btn-fill-thin").addEventListener("click", runFillThin);
@@ -258,10 +303,10 @@ function openLineModal(text, lineEl) {
   lineCtx = { text, el: lineEl, picked: null };
   const modal = document.getElementById("modal-line");
   document.getElementById("line-original").textContent = text;
-  const variants = variantsFor(text);
+  const variants = variantsFor(text, langPack);
   const list = document.getElementById("line-variants");
   if (!variants.length) {
-    list.innerHTML = `<p class="muted" style="padding:8px 16px;">This line is already tight. Nothing to compress without losing it.</p>`;
+    list.innerHTML = `<p class="muted" style="padding:8px 16px;">${escapeText(I18N.t("modal.tightLine"))}</p>`;
   } else {
     list.innerHTML = variants.map((v, i) => `
       <div class="variant" data-variant-idx="${i}">
@@ -270,7 +315,6 @@ function openLineModal(text, lineEl) {
       </div>
     `).join("");
   }
-  // store variants on the modal for picking
   list.dataset.variants = JSON.stringify(variants);
   document.getElementById("line-replace").disabled = true;
   modal.hidden = false;
@@ -295,7 +339,6 @@ function wireLineModal() {
 
   document.getElementById("line-replace").addEventListener("click", () => {
     if (!lineCtx || !lineCtx.picked) return;
-    // Mutate the active direction in state and re-render.
     const s = State.get();
     const dir = s.directions[s.activeDir];
     const target = lineCtx.text;
@@ -312,11 +355,10 @@ function wireLineModal() {
     }
     State.set({ directions: s.directions });
     document.getElementById("modal-line").hidden = true;
-    showToast(replaced ? `Replaced in ${replaced} place${replaced === 1 ? "" : "s"}.` : "Line not found.");
+    showToast(replaced ? I18N.t("toast.replacedNTimes", replaced) : I18N.t("toast.lineNotFound"));
   });
 }
 
-// Lightweight version of classifier for runtime line edits.
 function classify(orig, next) {
   if (orig.trim() === next.trim()) return "original";
   const a = new Set(orig.toLowerCase().split(/\s+/));
@@ -328,7 +370,7 @@ function classify(orig, next) {
 }
 
 // ── AI propose modal ────────────────────────────────────────────────────
-let proposeCtx = null; // { sectionIdx, options, picked }
+let proposeCtx = null;
 
 async function openProposeModal(sectionIdx) {
   const s = State.get();
@@ -339,16 +381,14 @@ async function openProposeModal(sectionIdx) {
 
   proposeCtx = { sectionIdx, options: [], picked: null, regenerating: false };
 
-  document.getElementById("propose-title").textContent =
-    `Propose alternatives — ${section.label}`;
-  document.getElementById("propose-subtitle").textContent =
-    `3 takes from Claude, in your voice.`;
+  document.getElementById("propose-title").textContent = I18N.t("modal.proposeFor", section.label);
+  document.getElementById("propose-subtitle").textContent = I18N.t("modal.proposeSubtitle");
 
   const body = document.getElementById("propose-body");
   body.innerHTML = `
     <div class="propose-loading">
       <div class="spinner"></div>
-      <p class="muted">Reading the poem and writing alternatives…</p>
+      <p class="muted">${escapeText(I18N.t("modal.proposeLoading"))}</p>
     </div>`;
   document.getElementById("propose-apply").disabled = true;
   document.getElementById("propose-regen").hidden = true;
@@ -368,7 +408,8 @@ async function runProposeForSection(sectionIdx) {
       direction: dir,
       formId: s.formId,
       dials: [...s.dials],
-      sectionIdx
+      sectionIdx,
+      targetLanguage: s.analysis?.lang || I18N.getLocale()
     });
     if (!res.options || !res.options.length) throw new Error("No options returned.");
     proposeCtx.options = res.options;
@@ -377,11 +418,9 @@ async function runProposeForSection(sectionIdx) {
   } catch (err) {
     body.innerHTML = `
       <div class="propose-error">
-        <strong>Couldn't reach the AI.</strong><br>
+        <strong>${escapeText(I18N.t("modal.proposeError.heading"))}</strong><br>
         ${escapeText(err.message || String(err))}<br><br>
-        Make sure <code>ANTHROPIC_API_KEY</code> is set as a Netlify environment
-        variable, then redeploy. If you're running locally, use
-        <code>netlify dev</code> instead of <code>python3 -m http.server</code>.
+        ${escapeText(I18N.t("modal.proposeError.body"))}
       </div>`;
     document.getElementById("propose-regen").hidden = false;
   }
@@ -392,7 +431,7 @@ function renderProposeOptions(options) {
   body.innerHTML = options.map((o, i) => `
     <div class="propose-option" data-opt-idx="${i}">
       <div class="propose-option-meta">
-        <span class="propose-option-num">option ${i + 1}</span>
+        <span class="propose-option-num">${escapeText(I18N.t("modal.optionN", i + 1))}</span>
         <span class="propose-option-note">${escapeText(o.note || "")}</span>
       </div>
       <div class="propose-option-lines">
@@ -421,7 +460,7 @@ function wireProposeModal() {
     proposeCtx.regenerating = true;
     document.getElementById("propose-body").innerHTML = `
       <div class="propose-loading"><div class="spinner"></div>
-      <p class="muted">Writing fresh alternatives…</p></div>`;
+      <p class="muted">${escapeText(I18N.t("modal.proposeFreshLoading"))}</p></div>`;
     document.getElementById("propose-apply").disabled = true;
     await runProposeForSection(proposeCtx.sectionIdx);
     proposeCtx.regenerating = false;
@@ -438,25 +477,24 @@ function wireProposeModal() {
     State.set({ directions: s.directions });
     document.getElementById("modal-propose").hidden = true;
     proposeCtx = null;
-    showToast(`Replaced ${section.label}.`);
+    showToast(I18N.t("toast.replacedSection", section.label));
   });
 }
 
-// Fill all underwritten sections in one batch call.
 async function runFillThin() {
   const s = State.get();
   const dir = s.directions[s.activeDir];
   if (!dir) return;
   const thin = thinSectionIndices(dir);
   if (!thin.length) {
-    showToast("No thin sections — every slot has body.");
+    showToast(I18N.t("toast.noThinSections"));
     return;
   }
 
   const banner = document.createElement("div");
   banner.className = "fill-banner";
   banner.id = "fill-banner";
-  banner.innerHTML = `<span class="spinner"></span><span>Filling ${thin.length} thin section${thin.length === 1 ? "" : "s"}…</span>`;
+  banner.innerHTML = `<span class="spinner"></span><span>${escapeText(I18N.getLocale() === "fr" ? `Complétion de ${thin.length} section${thin.length === 1 ? "" : "s"}…` : `Filling ${thin.length} thin section${thin.length === 1 ? "" : "s"}…`)}</span>`;
   const body = document.getElementById("direction-body");
   body.prepend(banner);
 
@@ -467,11 +505,11 @@ async function runFillThin() {
       direction: dir,
       formId: s.formId,
       dials: [...s.dials],
-      thinSectionIndices: thin
+      thinSectionIndices: thin,
+      targetLanguage: s.analysis?.lang || I18N.getLocale()
     });
     if (!res.fills || !res.fills.length) throw new Error("No fills returned.");
 
-    // Apply each fill — match by sectionIdx, but tolerate index drift via label.
     let applied = 0;
     for (const fill of res.fills) {
       let target = dir.sections[fill.sectionIdx];
@@ -483,12 +521,25 @@ async function runFillThin() {
       applied++;
     }
     State.set({ directions: s.directions });
-    showToast(`Filled ${applied} section${applied === 1 ? "" : "s"}.`);
+    showToast(I18N.t("toast.filledN", applied));
   } catch (err) {
-    showToast(err.message || "AI request failed.");
+    showToast(err.message || I18N.t("toast.aiFailed"));
   } finally {
     document.getElementById("fill-banner")?.remove();
   }
+}
+
+// ── language ────────────────────────────────────────────────────────────
+function wireLanguage() {
+  const btn = document.getElementById("btn-lang");
+  // Initial label reflects active locale (toggle target shown next).
+  btn.textContent = I18N.getLocale() === "fr" ? "FR / EN" : "EN / FR";
+  btn.addEventListener("click", () => {
+    autoSwitched = true;          // user took manual control
+    const next = I18N.getLocale() === "fr" ? "en" : "fr";
+    I18N.setLocale(next);
+    showToast(I18N.t("toast.languageSwitched", next));
+  });
 }
 
 // ── theme ───────────────────────────────────────────────────────────────

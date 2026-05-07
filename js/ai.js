@@ -57,7 +57,7 @@ async function postJSON(payload) {
   return body;
 }
 
-export async function proposeForSection({ source, analysis, direction, formId, dials, sectionIdx }) {
+export async function proposeForSection({ source, analysis, direction, formId, dials, sectionIdx, targetLanguage }) {
   const section = direction.sections[sectionIdx];
   if (!section) throw new Error("invalid sectionIdx");
   const form = getForm(formId);
@@ -69,11 +69,12 @@ export async function proposeForSection({ source, analysis, direction, formId, d
     formNotes: form.notes,
     dials,
     sectionLabel: section.label,
-    sectionIdx
+    sectionIdx,
+    targetLanguage: targetLanguage || analysis?.lang || "en"
   });
 }
 
-export async function fillThinSections({ source, analysis, direction, formId, dials, thinSectionIndices }) {
+export async function fillThinSections({ source, analysis, direction, formId, dials, thinSectionIndices, targetLanguage }) {
   const form = getForm(formId);
   return postJSON({
     mode: "fill-thin",
@@ -82,7 +83,8 @@ export async function fillThinSections({ source, analysis, direction, formId, di
     direction,
     formNotes: form.notes,
     dials,
-    thinSectionIndices
+    thinSectionIndices,
+    targetLanguage: targetLanguage || analysis?.lang || "en"
   });
 }
 

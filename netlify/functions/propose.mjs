@@ -37,6 +37,28 @@ const ANTHROPIC_VER  = "2023-06-01";
 const DEFAULT_MODEL  = "claude-sonnet-4-6";
 const FALLBACK_MODEL = "claude-haiku-4-5-20251001";
 
+// Language-specific rule fragments. Picked at request time based on
+// `targetLanguage` ("en" or "fr").
+const LANG_RULES = {
+  en: `
+Output language: ENGLISH. All proposed lines, notes, titles, and JSON string
+values must be in English. Use English prosody (typical English rhyme
+conventions; do not introduce French alexandrines or e-muet).`,
+  fr: `
+Langue de sortie : FRANÇAIS. Tous les vers proposés, notes, titres et chaînes
+JSON doivent être en français. Respecte la prosodie française :
+- Compte les syllabes à la française (le « e » muet en fin de mot compte
+  devant une consonne, ne compte pas devant une voyelle ou en fin absolue
+  de vers).
+- Si la source rime, respecte le schéma observé. Le français rime
+  fréquemment ABAB, AABB, ou en rimes embrassées (ABBA).
+- Évite les clichés français : à jamais, pour toujours, mon cœur saigne,
+  un océan de larmes, brûler d'amour, voler vers toi — sauf s'ils
+  apparaissent déjà dans la source.
+- Préserve les élisions naturelles (j'ai, l'eau, qu'elle) et les
+  registres choisis par l'auteur (tu / vous, passé composé / passé simple).`
+};
+
 const VOICE_RULES = `
 You shape text into song. Follow these rules without exception:
 - Preserve the writer's voice. Do NOT sterilize unusual phrasing or syntax.
@@ -70,8 +92,9 @@ PROSODY — line length, meter, and rhyme:
 `.trim();
 
 function buildSectionPrompt(body) {
-  const { source, analysis, direction, formNotes, dials, sectionLabel, sectionIdx } = body;
+  const { source, analysis, direction, formNotes, dials, sectionLabel, sectionIdx, targetLanguage } = body;
   const dialList = (dials && dials.length) ? dials.join(", ") : "none";
+  const langRules = LANG_RULES[targetLanguage] || LANG_RULES.en;
 
   // Slim copy of the direction with each section enumerated.
   const songSoFar = direction.sections.map((sec, i) => {
@@ -85,6 +108,7 @@ function buildSectionPrompt(body) {
   const prosodyBlock = formatProsody(analysis.prosody);
 
   return `${VOICE_RULES}
+${langRules}
 
 TASK — Propose THREE distinct alternative versions for the section labelled
 "${sectionLabel}" (the section marked "← FILL THIS" below). Each version must:
@@ -131,8 +155,9 @@ note, briefly mention syllable count and any rhyme honored.
 }
 
 function buildThinFillPrompt(body) {
-  const { source, analysis, direction, formNotes, dials, thinSectionIndices } = body;
+  const { source, analysis, direction, formNotes, dials, thinSectionIndices, targetLanguage } = body;
   const dialList = (dials && dials.length) ? dials.join(", ") : "none";
+  const langRules = LANG_RULES[targetLanguage] || LANG_RULES.en;
   const thinSet = new Set(thinSectionIndices);
 
   const songSoFar = direction.sections.map((sec, i) => {
@@ -147,6 +172,7 @@ function buildThinFillPrompt(body) {
   const prosodyBlock = formatProsody(analysis.prosody);
 
   return `${VOICE_RULES}
+${langRules}
 
 TASK — The sections below marked "← REWRITE THIS" are currently underwritten —
 they have too few source lines or rely on placeholder connective lines. Rewrite

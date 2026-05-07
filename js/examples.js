@@ -1,8 +1,8 @@
-// Three demo texts spanning poetic, plainspoken, and theatrical registers.
-// All original to this app — written in distinct voices to give the
-// shaping engine genuinely different terrain to work with.
+// examples.js
+// Demo texts in two languages, three registers each (poetic/dense,
+// plainspoken emotional, theatrical/dramatic). All original to this app.
 
-export const examples = [
+export const EXAMPLES_EN = [
   {
     id: "borrowed-rooms",
     title: "Borrowed Rooms",
@@ -70,3 +70,80 @@ I am going to sing the line she never finishes.
 I am going to finish it.`
   }
 ];
+
+export const EXAMPLES_FR = [
+  {
+    id: "chambres-empruntees",
+    title: "Chambres empruntées",
+    register: "très poétique / imagé",
+    blurb: "Imagerie dense, vers longs, adresse à la deuxième personne. À élaguer.",
+    text:
+`Je continue d'arriver dans des chambres que j'ai déjà quittées,
+les chambranles tièdes du manteau d'un autre.
+Une poire sur le comptoir, à demi mangée et sucrée,
+la lumière à travers le rideau qui se déshabille lentement.
+
+Tu m'as dit : tiens-moi ça, comme on tient de l'eau.
+Je l'ai tenu. Je le tiens encore.
+L'horloge au-dessus du four s'est arrêtée à l'heure dite.
+Dehors, un chien apprend au soir à s'asseoir.
+
+Je souris comme quelqu'un qui emprunte du temps à un étranger.
+Chaque chambre se souvient. Chaque chambre se souvient.
+La poire brunit. L'heure ne bouge pas.
+Je pars comme part la neige — non pas d'un coup, par morceaux.`
+  },
+  {
+    id: "lumiere-de-cuisine",
+    title: "Lumière de cuisine",
+    register: "émotion directe / parlé",
+    blurb: "Adresse directe, rythme conversationnel, prête pour une mélodie.",
+    text:
+`Je ne sais pas comment te dire que je suis fatiguée.
+J'ai fait le café. J'ai lavé les tasses.
+La lumière de la cuisine est allumée depuis des heures
+et je ne sais plus pour qui je l'ai laissée.
+
+Peut-être pour moi. Peut-être pour la version de moi
+qui devait rentrer ce soir
+et qui n'est pas rentrée, encore, et n'est pas rentrée, encore,
+et qui n'a pas dit où elle allait.
+
+Je laisse la lumière. Je laisse la lumière.
+La bouilloire claque. Le frigo bourdonne tout bas.
+Si tu reviens, tu me reconnaîtras à ceci :
+je laisse toujours une lumière pour nous deux.`
+  },
+  {
+    id: "la-doublure",
+    title: "La doublure",
+    register: "théâtral / monologue dramatique",
+    blurb: "Grande voix, virage intérieur, veut naturellement un refrain.",
+    text:
+`Ils ont dit : tiens-toi là. Ils ont dit : ne bouge pas.
+Ils ont dit : quelqu'un de plus important va arriver d'un instant à l'autre
+et c'est toi qui lui tendras la robe.
+Je me tiens là depuis six ans.
+
+J'ai appris le rideau comme une seconde peau.
+Je sais quelle latte chuchote, quel projecteur ment.
+Je sais les vers qu'elle bafouille. Je sais les vers qu'elle coupe.
+Je sais la chanson qu'elle ne finit jamais
+parce que la vérité de la chanson lui coûterait trop cher.
+
+Ce soir la robe est entre mes mains.
+Ce soir le projecteur est plus large que dans mon souvenir.
+Ce soir, quand ils diront tiens-toi là, je vais avancer.
+Ce soir, quand ils diront ne bouge pas,
+je vais chanter le vers qu'elle ne finit jamais.
+Je vais le finir.`
+  }
+];
+
+// Backwards-compat default export — used by older code paths.
+export const examples = EXAMPLES_EN;
+
+// Returns the example list for the given locale.
+export function examplesFor(locale) {
+  return locale === "fr" ? EXAMPLES_FR : EXAMPLES_EN;
+}

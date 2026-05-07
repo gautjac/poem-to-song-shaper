@@ -19,11 +19,12 @@
   <header class="topbar">
     <div class="brand">
       <span class="mark">§</span>
-      <h1>Poem&nbsp;to&nbsp;Song&nbsp;Shaper</h1>
-      <span class="tag">a workbench for turning text into singable shape</span>
+      <h1 data-i18n="app.title">Poem&nbsp;to&nbsp;Song&nbsp;Shaper</h1>
+      <span class="tag" data-i18n="app.tagline">a workbench for turning text into singable shape</span>
     </div>
     <div class="topbar-actions">
-      <button class="ghost" id="btn-examples" title="Load an example">Examples</button>
+      <button class="ghost" id="btn-lang" title="Switch language" aria-label="Switch language">EN / FR</button>
+      <button class="ghost" id="btn-examples" data-i18n="btn.examples" title="Load an example">Examples</button>
       <button class="ghost" id="btn-theme" title="Toggle theme">◐</button>
     </div>
   </header>
@@ -33,18 +34,19 @@
     <!-- LEFT — SOURCE -->
     <section class="pane source">
       <div class="pane-head">
-        <h2>Source</h2>
-        <div class="pane-head-meta" id="source-meta">paste a poem, fragment, or passage</div>
+        <h2 data-i18n="source.heading">Source</h2>
+        <div class="pane-head-meta" id="source-meta" data-i18n="source.metaPaste">paste a poem, fragment, or passage</div>
       </div>
 
       <textarea id="source" class="source-input" spellcheck="false"
+        data-i18n-placeholder="source.placeholder"
         placeholder="Paste your poem, fragment, monologue, or passage here…"></textarea>
 
       <div class="source-foot">
         <div class="counts" id="source-counts"></div>
         <div class="source-actions">
-          <button class="ghost small" id="btn-clear">Clear</button>
-          <button class="primary" id="btn-shape">Shape it &rarr;</button>
+          <button class="ghost small" id="btn-clear" data-i18n="source.clear">Clear</button>
+          <button class="primary" id="btn-shape" data-i18n="source.shape">Shape it &rarr;</button>
         </div>
       </div>
     </section>
@@ -54,58 +56,58 @@
 
       <div class="card analysis">
         <div class="card-head">
-          <h3>Reading</h3>
-          <span class="muted" id="analysis-status">awaiting text</span>
+          <h3 data-i18n="reading.heading">Reading</h3>
+          <span class="muted" id="analysis-status" data-i18n="reading.awaiting">awaiting text</span>
         </div>
         <div class="analysis-body" id="analysis-body">
-          <p class="empty">The poem will be read for tone, recurring images, hookable lines,
+          <p class="empty" data-i18n="reading.empty">The poem will be read for tone, recurring images, hookable lines,
             and whether it actually wants to become a song. Paste something on the left to begin.</p>
         </div>
       </div>
 
       <div class="card controls">
         <div class="card-head">
-          <h3>Shape</h3>
+          <h3 data-i18n="shape.heading">Shape</h3>
         </div>
 
         <div class="control-row">
-          <label class="control-label">Target form</label>
+          <label class="control-label" data-i18n="shape.targetForm">Target form</label>
           <div class="chips" id="form-chips" role="radiogroup">
-            <button class="chip" data-form="singer-songwriter" aria-checked="true">singer-songwriter</button>
-            <button class="chip" data-form="folk-ballad">folk ballad</button>
-            <button class="chip" data-form="indie-art-song">indie art song</button>
-            <button class="chip" data-form="musical-theatre">musical theatre</button>
-            <button class="chip" data-form="pop-adjacent">pop-adjacent</button>
-            <button class="chip" data-form="spoken-refrain">spoken-word w/ refrain</button>
+            <button class="chip" data-form="singer-songwriter" data-i18n="form.singer-songwriter" aria-checked="true">singer-songwriter</button>
+            <button class="chip" data-form="folk-ballad" data-i18n="form.folk-ballad">folk ballad</button>
+            <button class="chip" data-form="indie-art-song" data-i18n="form.indie-art-song">indie art song</button>
+            <button class="chip" data-form="musical-theatre" data-i18n="form.musical-theatre">musical theatre</button>
+            <button class="chip" data-form="pop-adjacent" data-i18n="form.pop-adjacent">pop-adjacent</button>
+            <button class="chip" data-form="spoken-refrain" data-i18n="form.spoken-refrain">spoken-word w/ refrain</button>
           </div>
         </div>
 
         <div class="control-row">
-          <label class="control-label">Songability</label>
+          <label class="control-label" data-i18n="shape.songability">Songability</label>
           <div class="chips toggles" id="dial-chips">
-            <button class="chip toggle" data-dial="repetition">more repetition</button>
-            <button class="chip toggle" data-dial="clarity">more clarity</button>
-            <button class="chip toggle" data-dial="density">more poetic density</button>
-            <button class="chip toggle" data-dial="conversational">more conversational</button>
-            <button class="chip toggle" data-dial="melodic">more melodic phrasing</button>
-            <button class="chip toggle" data-dial="shorter">shorter lines</button>
-            <button class="chip toggle" data-dial="hook">stronger hook</button>
+            <button class="chip toggle" data-dial="repetition" data-i18n="dial.repetition">more repetition</button>
+            <button class="chip toggle" data-dial="clarity" data-i18n="dial.clarity">more clarity</button>
+            <button class="chip toggle" data-dial="density" data-i18n="dial.density">more poetic density</button>
+            <button class="chip toggle" data-dial="conversational" data-i18n="dial.conversational">more conversational</button>
+            <button class="chip toggle" data-dial="melodic" data-i18n="dial.melodic">more melodic phrasing</button>
+            <button class="chip toggle" data-dial="shorter" data-i18n="dial.shorter">shorter lines</button>
+            <button class="chip toggle" data-dial="hook" data-i18n="dial.hook">stronger hook</button>
           </div>
         </div>
 
         <div class="control-foot">
-          <button class="ghost small" id="btn-reset-dials">reset dials</button>
-          <button class="primary small" id="btn-reshape" disabled>Re-shape with these dials</button>
+          <button class="ghost small" id="btn-reset-dials" data-i18n="shape.resetDials">reset dials</button>
+          <button class="primary small" id="btn-reshape" data-i18n="shape.reshape" disabled>Re-shape with these dials</button>
         </div>
       </div>
 
       <div class="card hooks-card">
         <div class="card-head">
-          <h3>Hook candidates</h3>
+          <h3 data-i18n="hooks.heading">Hook candidates</h3>
           <span class="muted" id="hooks-status"></span>
         </div>
         <ul class="hook-list" id="hook-list">
-          <li class="empty muted">Hook candidates will appear here once shaping begins.</li>
+          <li class="empty muted" data-i18n="hooks.empty">Hook candidates will appear here once shaping begins.</li>
         </ul>
       </div>
 
@@ -114,8 +116,8 @@
     <!-- RIGHT — DIRECTIONS -->
     <section class="pane directions">
       <div class="pane-head">
-        <h2>Directions</h2>
-        <div class="pane-head-meta">three ways this could move</div>
+        <h2 data-i18n="directions.heading">Directions</h2>
+        <div class="pane-head-meta" data-i18n="directions.subtitle">three ways this could move</div>
       </div>
 
       <div class="directions-tabs" id="direction-tabs" role="tablist">
@@ -126,18 +128,18 @@
 
       <div id="direction-body" class="direction-body">
         <div class="empty-pane">
-          <p class="empty">Three shaping directions will appear here:
+          <p class="empty" data-i18n-html="directions.empty">Three shaping directions will appear here:
             <em>minimal</em>, <em>balanced</em>, and <em>bold</em>.
             Each will say what it preserves, what it adapts, and why.</p>
         </div>
       </div>
 
       <div class="direction-foot" id="direction-foot" hidden>
-        <button class="ghost small" id="btn-fill-thin" title="Use AI to rewrite underwritten sections">✦ Fill thin sections</button>
-        <button class="ghost small" id="btn-save">★ Save this version</button>
-        <button class="ghost small" id="btn-copy-lyric">Copy as lyric sheet</button>
-        <button class="ghost small" id="btn-copy-md">Export markdown</button>
-        <button class="ghost small" id="btn-copy-hooks">Copy hooks only</button>
+        <button class="ghost small" id="btn-fill-thin" data-i18n="footer.fillThin" title="Use AI to rewrite underwritten sections">✦ Fill thin sections</button>
+        <button class="ghost small" id="btn-save" data-i18n="footer.save">★ Save this version</button>
+        <button class="ghost small" id="btn-copy-lyric" data-i18n="footer.copyLyric">Copy as lyric sheet</button>
+        <button class="ghost small" id="btn-copy-md" data-i18n="footer.copyMd">Export markdown</button>
+        <button class="ghost small" id="btn-copy-hooks" data-i18n="footer.copyHooks">Copy hooks only</button>
       </div>
     </section>
 
@@ -146,18 +148,18 @@
   <!-- BOTTOM DRAWER — Saved hooks & favorites -->
   <aside class="drawer" id="drawer" data-open="false">
     <button class="drawer-tab" id="drawer-tab" aria-expanded="false">
-      <span>Saved</span>
+      <span data-i18n="drawer.label">Saved</span>
       <span class="muted small" id="drawer-count">0</span>
     </button>
     <div class="drawer-body">
       <div class="drawer-cols">
         <div class="drawer-col">
-          <h4>Favorite hooks</h4>
-          <ul id="saved-hooks" class="saved-list"><li class="empty muted">No saved hooks yet.</li></ul>
+          <h4 data-i18n="drawer.favoriteHooks">Favorite hooks</h4>
+          <ul id="saved-hooks" class="saved-list"><li class="empty muted" data-i18n="drawer.noHooks">No saved hooks yet.</li></ul>
         </div>
         <div class="drawer-col">
-          <h4>Saved versions</h4>
-          <ul id="saved-versions" class="saved-list"><li class="empty muted">No saved versions yet.</li></ul>
+          <h4 data-i18n="drawer.savedVersions">Saved versions</h4>
+          <ul id="saved-versions" class="saved-list"><li class="empty muted" data-i18n="drawer.noVersions">No saved versions yet.</li></ul>
         </div>
       </div>
     </div>
@@ -166,8 +168,8 @@
   <!-- Modal: examples -->
   <div class="modal" id="modal-examples" hidden>
     <div class="modal-card">
-      <header><h3>Pick an example</h3>
-        <button class="ghost small" data-close>close</button></header>
+      <header><h3 data-i18n="modal.examples">Pick an example</h3>
+        <button class="ghost small" data-close data-i18n="modal.close">close</button></header>
       <div id="example-grid" class="example-grid"></div>
     </div>
   </div>
@@ -175,13 +177,13 @@
   <!-- Modal: line tools -->
   <div class="modal" id="modal-line" hidden>
     <div class="modal-card">
-      <header><h3>Line tools</h3>
-        <button class="ghost small" data-close>close</button></header>
+      <header><h3 data-i18n="modal.lineTools">Line tools</h3>
+        <button class="ghost small" data-close data-i18n="modal.close">close</button></header>
       <div class="line-original" id="line-original"></div>
       <div class="line-tools" id="line-tools"></div>
       <div class="line-variants" id="line-variants"></div>
       <footer class="line-footer">
-        <button class="ghost small" id="line-replace" disabled>Replace in section</button>
+        <button class="ghost small" id="line-replace" data-i18n="modal.replaceSection" disabled>Replace in section</button>
       </footer>
     </div>
   </div>
@@ -191,20 +193,20 @@
     <div class="modal-card propose-card">
       <header>
         <div>
-          <h3 id="propose-title">Propose alternatives</h3>
-          <div class="muted small" id="propose-subtitle">3 takes from Claude, in your voice.</div>
+          <h3 id="propose-title" data-i18n="modal.propose">Propose alternatives</h3>
+          <div class="muted small" id="propose-subtitle" data-i18n="modal.proposeSubtitle">3 takes from Claude, in your voice.</div>
         </div>
-        <button class="ghost small" data-close>close</button>
+        <button class="ghost small" data-close data-i18n="modal.close">close</button>
       </header>
       <div id="propose-body" class="propose-body">
         <div class="propose-loading">
           <div class="spinner"></div>
-          <p class="muted">Reading the poem and writing alternatives…</p>
+          <p class="muted" data-i18n="modal.proposeLoading">Reading the poem and writing alternatives…</p>
         </div>
       </div>
       <footer class="propose-footer">
-        <button class="ghost small" id="propose-regen" hidden>↻ regenerate</button>
-        <button class="primary small" id="propose-apply" disabled>Replace section</button>
+        <button class="ghost small" id="propose-regen" data-i18n="modal.regenerate" hidden>↻ regenerate</button>
+        <button class="primary small" id="propose-apply" data-i18n="modal.replaceFull" disabled>Replace section</button>
       </footer>
     </div>
   </div>
